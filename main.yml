@@ -1,0 +1,48 @@
+---
+- hosts: pibackup
+  become: yes
+
+  handlers:
+    - name: restart ssh
+      service:
+        name: sshd
+        state: restarted
+    
+    - name: restart samba
+      service:
+        name: smbd
+        state: restarted
+    
+    - name: restart unbound
+      service:
+        name: unbound
+        state: restarted
+    
+    - name: restart systemd-resolved
+      service:
+        name: systemd-resolved
+        state: restarted
+    
+    - name: update resolvconf
+      become: yes
+      shell: "resolvconf --enable-updates && resolvconf -u"
+
+    - name: apt update
+      apt:
+        update_cache: yes
+
+
+  tasks:
+    - import_tasks: tasks/essential.yml
+    - import_tasks: tasks/cron.yml
+    - import_tasks: tasks/mount-drives.yml
+    - import_tasks: tasks/remove-snap.yml
+    - import_tasks: tasks/install-docker.yml
+    - import_tasks: tasks/deploy-containers.yml
+
+
+- hosts: local
+  tasks:
+    - import_tasks: tasks/local-setup.yml
+
+

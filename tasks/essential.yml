@@ -1,0 +1,122 @@
+---
+
+- name: Copying .bash files
+  tags:
+    - essential
+  copy:
+    src: "{{ item }}"
+    dest: "{{ home }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: 0775
+  loop: "{{ lookup('fileglob', '../.bashfiles/.*', wantlist=True) }}"
+
+- name: Update
+  tags:
+    - essential
+  apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: Install essential packages
+  tags:
+    - essential
+  package:
+    name: "{{ essential_packages }}"
+    state: latest
+
+- name: "Make {{ username }} user"
+  tags:
+    - essential
+  user:
+    name: "{{ username }}"
+    create_home: yes
+    shell: /bin/bash
+
+- name: "Add ssh key for {{ username }}"
+  tags:
+    - essential
+  authorized_key:
+    user: "{{ username }}"
+    key: "{{ user_ssh_key }}"
+    state: present
+
+- name: "Add ssh key for {{ server_username}}"
+  tags:
+    - essential
+  authorized_key:
+    user: "{{ server_username }}"
+    key: "{{ server_ssh_key }}"
+    state: present
+
+- name: "Add sudoers file for {{ username }}"
+  tags:
+    - essential
+  lineinfile:
+    dest: /etc/sudoers
+    regexp: "^{{ username }}"
+    line: "{{ username }} ALL=(ALL) NOPASSWD: ALL"
+    state: present
+    validate: 'visudo -cf %s'
+
+- name: Update sshd config
+  tags:
+    - essential
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    validate: 'sshd -t -f %s'
+  with_items:
+    - regexp: "^PasswordAuthentication"
+      line: "PasswordAuthentication no"
+    - regexp: "^PermitRootLogin"
+      line: "PermitRootLogin no"
+    - regexp: "^Port"
+      line: "Port {{ ssh_port }}"
+  notify: restart ssh
+
+- name: Flush all handlers
+  tags:
+    - essential
+  meta: flush_handlers
+
+- name: Ufw public ports
+  tags:
+    - essential
+  ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  with_items:
+    - { rule: "allow", port: "51820", proto: "udp"} # wireguard
+    - { rule: "allow", port: "53", proto: "tcp"}   # pihole
+    - { rule: "allow", port: "53", proto: "udp"}   # pihole
+    - { rule: "allow", port: "{{ ssh_port }}", proto: "tcp"}
+    - { rule: "allow", port: "8200", proto: "tcp"} # pihole ui
+    - { rule: "allow", port: "9000", proto: "tcp"}
+
+- name: Configure default incoming/outgoing ufw policies
+  tags:
+    - essential
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+    state: enabled
+  with_items:
+    - { direction: outgoing, policy: allow }
+    - { direction: incoming, policy: deny }
+
+- name: Ensure fail2ban is running and enabled on boot
+  tags:
+    - essential
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+- name: Flush all handlers
+  tags:
+    - essential
+  meta: flush_handlers

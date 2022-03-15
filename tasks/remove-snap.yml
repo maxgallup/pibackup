@@ -1,0 +1,26 @@
+---
+
+- name: Remove files
+  tags:
+    - snapremoval
+    - essential
+  become: yes
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items:
+    - path: "/var/cache/snap"
+    - path: "/root/snap"
+    - path: "/var/snap"
+    - path: "/var/lib/snap"
+
+
+- name: Uninstall snap
+  tags:
+    - snapremoval
+    - essential
+  apt:
+    name: snapd
+    state: absent
+    purge: yes
+

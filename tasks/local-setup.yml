@@ -1,0 +1,17 @@
+---
+
+- name: Change local config
+  tags:
+    - local
+    - essential
+  lineinfile:
+    dest: hosts.ini
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - regexp: "^ansible_user"
+      line: "ansible_user={{ username }}"
+    - regexp: "ansible_ssh_port"
+      line: "ansible_ssh_port={{ ssh_port }}"
+

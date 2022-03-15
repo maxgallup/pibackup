@@ -1,0 +1,109 @@
+---
+
+- name: Create docker volume dirs(back these up)
+  tags:
+    - containers
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: 0755
+  with_items:
+    - path: "{{ container_dir }}"
+    - path: "{{ portainer_dir }}"
+    - path: "{{ wireguard_dir }}"
+    - path: "{{ pihole_dir }}"
+    - path: "{{ pihole_dns_dir }}"
+
+
+
+- name: Deploy Portainer Container
+  tags:
+    - containers
+  community.docker.docker_container:
+    name: portainer
+    image: portainer/portainer-ce
+    restart_policy: "{{ global_restart_policy }}"
+    state: "{{ portainer_state }}"
+    ports:
+      - 9000:9000
+      - 8000:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "{{ portainer_dir }}:/data"
+
+
+
+
+- name: Deploy watchtower
+  tags:
+    - containers
+  community.docker.docker_container:
+    name: watchtower
+    image: containrrr/watchtower
+    command: --schedule "0 0 0 * * 0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart_policy: "{{ global_restart_policy }}"
+    state: "{{ watchtower_state }}"
+
+- name: Docker wireguard
+  tags:
+    - containers
+  community.docker.docker_container:
+    name: wireguard
+    image: linuxserver/wireguard
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "{{ time_zone }}"
+      SERVERURL: "auto"
+      SERVERPORT: "51820"
+      PEERS: "2"
+      PEERDNS: "auto"
+      INTERNAL_SUBNET: "10.13.13.0"
+    capabilities:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - 51820:51820/udp
+    volumes:
+      - "{{ wireguard_dir }}:/config"
+      - /lib/modules:/lib/modules
+    sysctls: {
+      'net.ipv4.conf.all.src_valid_mark': '1'
+    }
+    restart_policy: "{{ global_restart_policy }}"
+    state: "{{ wireguard_state }}"
+
+
+
+
+- name: Docker pihole
+  tags:
+    - containers
+  community.docker.docker_container:
+    name: pihole
+    image: pihole/pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8200:80/tcp"
+    env:
+      TZ: "{{ time_zone }}"
+      WEBPASSWORD: "{{ pihole_password }}"
+    volumes:  
+      - "{{ pihole_dir }}:/etc/pihole/"
+      - "{{ pihole_dns_dir }}:/etc/dnsmasq.d/"
+    capabilities:
+      - NET_ADMIN
+    restart_policy: "{{ global_restart_policy }}"
+    state: "{{ pihole_state }}"
+
+
+
+
+
+
+

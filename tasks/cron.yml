@@ -1,0 +1,14 @@
+---
+
+- name: "apt update"
+  become: yes
+  cron:
+    name: "apt update"
+    hour: "23"
+    minute: "10"
+    job: "apt update && apt upgrade -y"
+    user: "root"
+    state: present
+  tags:
+    - cron
+    - essential

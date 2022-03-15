@@ -1,0 +1,32 @@
+---
+
+- name: Make sure mount points exist
+  tags:
+    - mountdrives
+    - essential
+  file:
+    path: "{{ item }}"
+    state: directory
+    group: "{{ username }}"
+    owner: "{{ username }}"
+    mode: 0755
+  with_items:
+    - "{{ home }}/{{ slow02 }}"
+    - "{{ home }}/{{ slow500 }}"
+
+
+- name: Mount Drives
+  tags:
+    - mountdrives
+    - essential
+  mount:
+    path: "{{ item.path }}"
+    src: "{{ item.src }}"
+    fstype: ext4
+    state: present
+  with_items:
+    - path: "{{ home }}/{{ slow02 }}"
+      src: "{{ slow02_dev }}"
+    - path: "{{ home }}/{{ slow500 }}"
+      src: "{{ slow500_dev }}"
+
