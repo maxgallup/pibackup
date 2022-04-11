@@ -39,6 +39,7 @@
     - import_tasks: tasks/remove-snap.yml
     - import_tasks: tasks/install-docker.yml
     - import_tasks: tasks/deploy-containers.yml
+    - import_tasks: tasks/tailscale.yml
 
 
 - hosts: local

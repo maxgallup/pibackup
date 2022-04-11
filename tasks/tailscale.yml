@@ -1,0 +1,25 @@
+---
+
+- name: Tailscale dependencies
+  apt:
+    name: apt-transport-https
+  tags: tailscale
+
+- name: Tailscale Signing Key
+  shell: curl -fsSL https://pkgs.tailscale.com/stable/raspbian/buster.gpg | sudo apt-key add -
+  tags: tailscale
+
+- name: Tailscale Repo
+  shell: curl -fsSL https://pkgs.tailscale.com/stable/raspbian/buster.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+  tags: tailscale
+
+- name: Apt Update
+  apt:
+    update_cache: yes
+  tags: tailscale
+
+- name: Install Tailscale
+  apt:
+    name: tailscale
+  tags: tailscale
+
